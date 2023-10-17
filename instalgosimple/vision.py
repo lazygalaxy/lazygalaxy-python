@@ -3,7 +3,6 @@ import numpy as np
 
 
 class Vision:
-
     # properties
     needle_img = None
     needle_w = 0
@@ -12,7 +11,7 @@ class Vision:
     debug = None
 
     # constructor
-    def __init__(self, needle_img_path, method=cv.TM_CCOEFF_NORMED, debug = False):
+    def __init__(self, needle_img_path, method=cv.TM_CCOEFF_NORMED, debug=False):
         # load the image we're trying to match
         # https://docs.opencv.org/4.2.0/d4/da8/group__imgcodecs.html
         self.needle_img = cv.imread(needle_img_path, cv.IMREAD_UNCHANGED)
@@ -24,7 +23,7 @@ class Vision:
         # There are 6 methods to choose from:
         # TM_CCOEFF, TM_CCOEFF_NORMED, TM_CCORR, TM_CCORR_NORMED, TM_SQDIFF, TM_SQDIFF_NORMED
         self.method = method
-        self.debug=debug
+        self.debug = debug
 
     def find(self, haystack_img, threshold=0.5, color=(255, 0, 255), debug_mode=None):
         # run the OpenCV algorithm
@@ -33,7 +32,7 @@ class Vision:
         # Get the all the positions from the match result that exceed our threshold
         locations = np.where(result >= threshold)
         locations = list(zip(*locations[::-1]))
-        #print(locations)
+        # print(locations)
 
         # You'll notice a lot of overlapping rectangles get drawn. We can eliminate those redundant
         # locations by using groupRectangles().
@@ -50,30 +49,29 @@ class Vision:
         # in the result. I've set eps to 0.5, which is:
         # "Relative difference between sides of the rectangles to merge them into a group."
         rectangles, weights = cv.groupRectangles(rectangles, groupThreshold=1, eps=0.5)
-        #print(rectangles)
+        # print(rectangles)
 
         points = []
         if len(rectangles):
             marker_type = cv.MARKER_CROSS
 
             # Loop over all the rectangles
-            for (x, y, w, h) in rectangles:
-
+            for x, y, w, h in rectangles:
                 # Determine the center position
-                center_x = x + int(w/2)
-                center_y = y + int(h/2)
+                center_x = x + int(w / 2)
+                center_y = y + int(h / 2)
                 # Save the points
                 points.append((center_x, center_y))
 
                 if self.debug:
                     # Draw the center point
-                    cv.drawMarker(haystack_img, (center_x, center_y), 
-                                color, markerType=marker_type, 
-                                markerSize=40, thickness=2)
-
-        if self.debug:
-            cv.imshow('Matches', haystack_img)
-            #cv.waitKey()
-            #cv.imwrite('result_click_point.jpg', haystack_img)
+                    cv.drawMarker(
+                        haystack_img,
+                        (center_x, center_y),
+                        color,
+                        markerType=marker_type,
+                        markerSize=40,
+                        thickness=2,
+                    )
 
         return points
