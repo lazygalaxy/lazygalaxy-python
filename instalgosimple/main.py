@@ -17,6 +17,7 @@ wincap = WindowCapture("BlueStacks App Player")
 
 # initialize the Vision class
 vision_like_icon = Vision("images/like_icon.jpg", cv.TM_CCOEFF_NORMED, DEBUG)
+vision_more_icon = Vision("images/more_icon.jpg", cv.TM_CCOEFF_NORMED, DEBUG)
 
 # initialize the like bot
 bot = LikeBot((wincap.offset_x, wincap.offset_y), (wincap.w, wincap.h), DEBUG)
@@ -28,11 +29,12 @@ while True:
 
     # if we don't have a screenshot yet, don't run the code below this point yet
     if screenshot is None:
-        continue
-
-    # display the processed image
-    like_icon_points = vision_like_icon.find(screenshot, 0.8)
-    bot.update_targets(like_icon_points)
+        bot.update_targets(None)
+    else:
+        # display the processed image
+        like_targets = vision_like_icon.find(screenshot, 0.8, (0, 0, 255))
+        more_targets = vision_more_icon.find(screenshot, 0.8, (255, 0, 255))
+        bot.update_like_targets(like_targets)
 
     # press 'q' with the output window focused to exit.
     # waits 1 ms every loop to process key presses

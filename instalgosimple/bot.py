@@ -18,7 +18,8 @@ class LikeBot:
 
     # properties
     state = None
-    targets = []
+    like_targets = []
+    more_targets = []
     screenshot = None
     movement_screenshot = None
     window_offset = (0, 0)
@@ -40,12 +41,12 @@ class LikeBot:
         self.state = BotState.INITIALIZING
         self.debug = debug
 
-    def click_all_targets(self):
-        for target_pos in self.targets:
+    def click_like_targets(self):
+        for like_target in self.like_targets:
             if self.stopped:
                 break
 
-            screen_x, screen_y = self.get_screen_position(target_pos)
+            screen_x, screen_y = self.get_screen_position(like_target)
             # move the mouse
             # pyautogui.moveTo(x=screen_x, y=screen_y)
             # pyautogui.click()
@@ -61,9 +62,14 @@ class LikeBot:
 
     # threading methods
 
-    def update_targets(self, targets):
+    def update_like_targets(self, targets):
         self.lock.acquire()
-        self.targets = targets
+        self.like_targets = targets
+        self.lock.release()
+
+    def update_more_targets(self, targets):
+        self.lock.acquire()
+        self.more_targets = targets
         self.lock.release()
 
     def start(self):
@@ -81,20 +87,26 @@ class LikeBot:
             self.lock.acquire()
 
             if self.debug:
-                print(str(self.state) + " " + str(self.targets))
+                print(
+                    str(self.state)
+                    + " like:"
+                    + str(self.like_targets)
+                    + " more:"
+                    + str(self.more_targets)
+                )
 
             if self.state == BotState.INITIALIZING:
-                if self.targets:
+                if self.like_targets:
                     self.state = BotState.SEARCHING
 
             elif self.state == BotState.SEARCHING:
-                if self.targets:
-                    self.click_all_targets()
+                if self.like_targets:
+                    self.click_like_targets()
                     self.state = BotState.CLICKING
 
             elif self.state == BotState.CLICKING:
-                if self.targets:
-                    self.click_all_targets()
+                if self.like_targets:
+                    self.click_like_targets()
                     self.state = BotState.CLICKING
                 else:
                     self.state = BotState.SEARCHING
