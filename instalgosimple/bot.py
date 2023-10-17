@@ -10,11 +10,8 @@ class BotState:
     SEARCHING = 1
     CLICKING = 2
 
-class LikeBot:
-    
-    # constants
-    INITIALIZING_SECONDS = 2
 
+class LikeBot:
     # threading properties
     stopped = True
     lock = None
@@ -23,9 +20,8 @@ class LikeBot:
     state = None
     targets = []
     screenshot = None
-    timestamp = None
     movement_screenshot = None
-    window_offset = (0,0)
+    window_offset = (0, 0)
     window_w = 0
     window_h = 0
     debug = None
@@ -35,16 +31,13 @@ class LikeBot:
         self.lock = Lock()
 
         # for translating window positions into screen positions, it's easier to just
-        # get the offsets and window size from WindowCapture rather than passing in 
+        # get the offsets and window size from WindowCapture rather than passing in
         # the whole object
         self.window_offset = window_offset
         self.window_w = window_size[0]
         self.window_h = window_size[1]
 
-        # start bot in the initializing mode to allow us time to get setup.
-        # mark the time at which this started so we know when to complete it
         self.state = BotState.INITIALIZING
-        self.timestamp = time()
         self.debug = debug
 
     def click_all_targets(self):
@@ -56,7 +49,7 @@ class LikeBot:
             # move the mouse
             # pyautogui.moveTo(x=screen_x, y=screen_y)
             # pyautogui.click()
-            print('clicked on x:{} y:{}'.format(screen_x, screen_y))
+            print("clicked on x:{} y:{}".format(screen_x, screen_y))
 
     # translate a pixel position on a screenshot image to a pixel position on the screen.
     # pos = (x, y)
@@ -84,19 +77,16 @@ class LikeBot:
     # main logic controller
     def run(self):
         while not self.stopped:
-            sleep(0.5)
-
+            sleep(1)
             self.lock.acquire()
 
             if self.debug:
                 print(str(self.state) + " " + str(self.targets))
 
             if self.state == BotState.INITIALIZING:
-                # do no bot actions until the startup waiting period is complete
-                if time() > self.timestamp + self.INITIALIZING_SECONDS:
-                    # start searching when the waiting period is over
+                if self.targets:
                     self.state = BotState.SEARCHING
-                    
+
             elif self.state == BotState.SEARCHING:
                 if self.targets:
                     self.click_all_targets()
