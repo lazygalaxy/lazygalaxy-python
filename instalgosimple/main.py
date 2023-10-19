@@ -1,9 +1,8 @@
 import cv2 as cv
 import numpy as np
 import os
-from time import time
+from time import sleep
 from windowcapture import WindowCapture
-from vision import Vision
 from bot import LikeBot
 
 # Change the working directory to the folder this script is in.
@@ -15,29 +14,26 @@ DEBUG = True
 # initialize the WindowCapture class
 wincap = WindowCapture("BlueStacks App Player")
 
+screenshot = wincap.get_screenshot()
+while screenshot is None:
+    # wait until we get a screenshot
+    print("no screenshot, waiting for 1 sec...")
+    sleep(1)
+    screenshot = wincap.get_screenshot()
+if DEBUG:
+    cv.imshow("Matches", screenshot)
+
 # initialize the like bot
 bot = LikeBot((wincap.offset_x, wincap.offset_y), (wincap.w, wincap.h), DEBUG)
 bot.start()
 
-# initialize the Vision class
-vision_like_icon = Vision("images/like_icon.jpg", cv.TM_CCOEFF_NORMED, DEBUG)
-vision_more_icon = Vision("images/more_icon.jpg", cv.TM_CCOEFF_NORMED, DEBUG)
 
 while True:
-    # get an updated image of the game
-    screenshot = wincap.get_screenshot()
-
     # if we don't have a screenshot yet, don't run the code below this point yet
     if screenshot is None:
-        bot.update_targets(None)
+        bot.update_screenshot(None)
     else:
-        like_targets = vision_like_icon.find(screenshot, 0.8, (0, 0, 255))
-        bot.update_like_targets(like_targets)
-        more_targets = vision_more_icon.find(screenshot, 0.8, (255, 0, 255))
-        bot.update_more_targets(more_targets)
-
-    if DEBUG:
-        cv.imshow("Matches", screenshot)
+        bot.update_screenshot(screenshot)
 
     # press 'q' with the output window focused to exit.
     # waits 1 ms every loop to process key presses
@@ -46,5 +42,8 @@ while True:
         bot.stop()
         cv.destroyAllWindows()
         break
+
+    # get an updated image of the game
+    screenshot = wincap.get_screenshot()
 
 print("Done.")

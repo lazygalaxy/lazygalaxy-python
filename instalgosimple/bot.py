@@ -1,8 +1,7 @@
 import cv2 as cv
-import pyautogui
-from time import sleep, time
+from time import sleep
 from threading import Thread, Lock
-from math import sqrt
+from vision import Vision
 
 
 class BotState:
@@ -18,14 +17,15 @@ class LikeBot:
 
     # properties
     state = None
-    like_targets = []
-    more_targets = []
     screenshot = None
-    movement_screenshot = None
     window_offset = (0, 0)
     window_w = 0
     window_h = 0
     debug = None
+
+    # vision
+    vision_like_icon = None
+    vision_more_icon = None
 
     def __init__(self, window_offset, window_size, debug=False):
         # create a thread lock object
@@ -41,8 +41,16 @@ class LikeBot:
         self.state = BotState.INITIALIZING
         self.debug = debug
 
-    def click_like_targets(self):
-        for like_target in self.like_targets:
+        # initialize the Vision class
+        self.vision_like_icon = Vision(
+            "images/like_icon.jpg", cv.TM_CCOEFF_NORMED, debug
+        )
+        self.vision_more_icon = Vision(
+            "images/more_icon.jpg", cv.TM_CCOEFF_NORMED, debug
+        )
+
+    def click_like_targets(self, like_targets):
+        for like_target in like_targets:
             if self.stopped:
                 break
 
@@ -62,14 +70,12 @@ class LikeBot:
 
     # threading methods
 
-    def update_like_targets(self, targets):
+    def update_screenshot(self, screenshot):
         self.lock.acquire()
-        self.like_targets = targets
-        self.lock.release()
-
-    def update_more_targets(self, targets):
-        self.lock.acquire()
-        self.more_targets = targets
+        self.screenshot = screenshot
+        if screenshot is None:
+            self.like_targets = None
+            self.more_targets = None
         self.lock.release()
 
     def start(self):
@@ -87,26 +93,39 @@ class LikeBot:
             self.lock.acquire()
 
             if self.debug:
+                if self.screenshot is None:
+                    like_targets = []
+                    more_targets = []
+                else:
+                    like_targets = self.vision_like_icon.find(
+                        self.screenshot, 0.8, (0, 0, 255)
+                    )
+                    more_targets = self.vision_more_icon.find(
+                        self.screenshot, 0.8, (255, 0, 255)
+                    )
+                    if self.debug:
+                        cv.imshow("Matches", self.screenshot)
+
                 print(
                     str(self.state)
                     + " like:"
-                    + str(self.like_targets)
+                    + str(like_targets)
                     + " more:"
-                    + str(self.more_targets)
+                    + str(more_targets)
                 )
 
             if self.state == BotState.INITIALIZING:
-                if self.like_targets:
+                if like_targets:
                     self.state = BotState.SEARCHING
 
             elif self.state == BotState.SEARCHING:
-                if self.like_targets:
-                    self.click_like_targets()
+                if like_targets:
+                    self.click_like_targets(like_targets)
                     self.state = BotState.CLICKING
 
             elif self.state == BotState.CLICKING:
-                if self.like_targets:
-                    self.click_like_targets()
+                if like_targets:
+                    self.click_like_targets(like_targets)
                     self.state = BotState.CLICKING
                 else:
                     self.state = BotState.SEARCHING
