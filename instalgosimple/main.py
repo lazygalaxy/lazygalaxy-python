@@ -28,13 +28,13 @@ while True:
     screenshot = wincap.get_screenshot()
 
     # if we don't have a screenshot yet, don't run the code below this point yet
-    # if screenshot is None:
-    #     bot.update_targets(None)
-    # else:
-    # display the processed image
-    like_targets = vision_like_icon.find(screenshot, 0.8, (0, 0, 255))
-    more_targets = vision_more_icon.find(screenshot, 0.8, (255, 0, 255))
-    #     bot.update_like_targets(like_targets)
+    if screenshot is None:
+        bot.update_targets(None)
+    else:
+        like_targets = vision_like_icon.find(screenshot, 0.8, (0, 0, 255))
+        bot.update_like_targets(like_targets)
+        more_targets = vision_more_icon.find(screenshot, 0.8, (255, 0, 255))
+        bot.update_more_targets(more_targets)
 
     if DEBUG:
         cv.imshow("Matches", screenshot)
