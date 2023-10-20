@@ -5,7 +5,7 @@ from vision import Vision
 from windowcapture import WindowCapture
 
 
-class LikeBot:
+class InstaBot:
     # bot
     scroll_frequency = None
     other_frequecy = None
@@ -50,10 +50,10 @@ class LikeBot:
 
         # set vision properties
         self.vision_like_icon = Vision(
-            "images/like_icon.jpg", cv.TM_CCOEFF_NORMED, debug
+            "images/instagram/like_icon.jpg", cv.TM_CCOEFF_NORMED, debug
         )
         self.vision_more_icon = Vision(
-            "images/more_icon.jpg", cv.TM_CCOEFF_NORMED, debug
+            "images/instagram/more_icon.jpg", cv.TM_CCOEFF_NORMED, debug
         )
 
         # get an initial state to work with
