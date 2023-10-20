@@ -1,42 +1,34 @@
 import cv2 as cv
 import pyautogui
 from time import sleep
-from threading import Thread, Lock
 from vision import Vision
 from windowcapture import WindowCapture
 
 
-class BotState:
-    SCREEN_CAPTURING = 0
-    IDLING = 1
-    UP_SCROLLING = 2
-    DOWN_SCROLLING = 3
-    LIKE_CLICKING = 4
-
-
 class LikeBot:
-    # threading properties
-    stopped = True
-    lock = None
-
-    # properties
-    frequency = None
+    # bot
+    scroll_frequency = None
+    other_frequecy = None
     debug = None
-    wincap = None
+
+    # state
     screenshot = None
+    like_targets = None
+    more_targets = None
+
+    # window
+    wincap = None
     window_offset = None
-    state = None
 
     # vision
     vision_like_icon = None
     vision_more_icon = None
 
-    def __init__(self, frequecy=0.5, debug=False):
-        # create a thread lock object
-        self.lock = Lock()
-
+    def __init__(self, scroll_frequency=1, other_frequecy=2, debug=False):
+        # set bot properties
         self.debug = debug
-        self.frequency = frequecy
+        self.scroll_frequency = scroll_frequency
+        self.other_frequecy = other_frequecy
 
         # initialize the WindowCapture class
         self.wincap = WindowCapture("BlueStacks App Player")
@@ -56,9 +48,7 @@ class LikeBot:
         # the whole object
         self.window_offset = (self.wincap.offset_x, self.wincap.offset_y)
 
-        self.state = BotState.SCREEN_CAPTURING
-
-        # initialize the Vision class
+        # set vision properties
         self.vision_like_icon = Vision(
             "images/like_icon.jpg", cv.TM_CCOEFF_NORMED, debug
         )
@@ -66,84 +56,82 @@ class LikeBot:
             "images/more_icon.jpg", cv.TM_CCOEFF_NORMED, debug
         )
 
-    def click_like_targets(self, like_targets):
-        self.state = BotState.IDLING
-        for like_target in like_targets:
-            if self.stopped:
-                break
+        # get an initial state to work with
+        self.process_state(self.screenshot)
 
-            self.state = BotState.LIKE_CLICKING
-            screen_x, screen_y = self.get_click_position(like_target)
-            # move the mouse
-            # pyautogui.moveTo(x=screen_x, y=screen_y)
-            # pyautogui.click()
-            # print("clicked on x:{} y:{}".format(screen_x, screen_y))
-
-    def down_scroll(self, clicks):
-        self.state = BotState.DOWN_SCROLLING
-        x, y = self.get_click_position(self.get_screen_midpoint())
-        pyautogui.scroll(clicks, x, y)
-
-    # translate a pixel position on a screenshot image to a pixel position on the screen.
-    # pos = (x, y)
-    # WARNING: if you move the window being captured after execution is started, this will
-    # return incorrect coordinates, because the window position is only calculated in
-    # the WindowCapture __init__ constructor.
-    def get_click_position(self, pos):
-        return (pos[0] + self.window_offset[0], pos[1] + self.window_offset[1])
-
-    def get_screen_midpoint(self):
-        return (int(self.wincap.w / 2), int(self.wincap.h / 2))
-
-    # threading methods
-    def start(self):
-        self.stopped = False
-        t = Thread(target=self.run)
-        t.start()
-
-    def stop(self):
-        self.stopped = True
-
-    # main logic controller
-    def run(self):
-        while not self.stopped:
-            sleep(self.frequency)
-            self.lock.acquire()
-
+    def process_state(self, screenshot=None):
+        if screenshot is None:
             self.screenshot = self.wincap.get_screenshot()
+        else:
+            self.screenshot = screenshot
 
-            if self.screenshot is None:
-                like_targets = []
-                more_targets = []
-                self.state = BotState.SCREEN_CAPTURING
-            else:
-                like_targets = self.vision_like_icon.find(
-                    self.screenshot, 0.8, (0, 0, 255)
-                )
-                more_targets = self.vision_more_icon.find(
-                    self.screenshot, 0.8, (255, 0, 255)
-                )
-                if self.debug:
-                    print(str(self.wincap.w) + " " + str(self.wincap.h))
-                    cv.drawMarker(
-                        self.screenshot,
-                        self.get_screen_midpoint(),
-                        (0, 255, 255),
-                        markerType=cv.MARKER_CROSS,
-                        markerSize=300,
-                        thickness=2,
-                    )
-                    cv.imshow("Matches", self.screenshot)
-
-            self.click_like_targets(like_targets)
-            self.down_scroll(-3)
-
-            print(
-                str(self.state)
-                + " like:"
-                + str(like_targets)
-                + " more:"
-                + str(more_targets)
+        if self.screenshot is None:
+            self.like_targets = []
+            self.more_targets = []
+        else:
+            x, y = self.__get_click_position(self.__get_screen_midpoint())
+            self.like_targets = self.vision_like_icon.find(
+                self.screenshot,
+                0.8,
+                [0, x],
+                None,
+                (0, 0, 255),
+                self.debug,
+            )
+            self.more_targets = self.vision_more_icon.find(
+                self.screenshot, 0.8, None, None, (255, 0, 255), self.debug
             )
 
-            self.lock.release()
+        if self.debug:
+            cv.drawMarker(
+                self.screenshot,
+                self.__get_screen_midpoint(),
+                (0, 255, 255),
+                markerType=cv.MARKER_CROSS,
+                markerSize=300,
+                thickness=2,
+            )
+            cv.imshow("Matches", self.screenshot)
+
+            print(
+                "state  -> "
+                + " like:"
+                + str(self.like_targets)
+                + " more:"
+                + str(self.more_targets)
+            )
+
+    # state
+    def has_like_targets(self):
+        return self.like_targets
+
+    def has_more_targets(self):
+        return self.more_targets
+
+    # actions
+    def scroll_down(self):
+        x, y = self.__get_click_position(self.__get_screen_midpoint())
+        pyautogui.scroll(-1, x, y)
+        print("action -> scroll down")
+        sleep(self.scroll_frequency)
+
+    def scroll_up(self):
+        x, y = self.__get_click_position(self.__get_screen_midpoint())
+        pyautogui.scroll(1, x, y)
+        print("action -> scroll up")
+        sleep(self.scroll_frequency)
+
+    def click_like_targets(self):
+        for like_target in self.like_targets:
+            screen_x, screen_y = self.__get_click_position(like_target)
+            pyautogui.moveTo(x=screen_x, y=screen_y)
+            pyautogui.click()
+            print("click  -> x:{} y:{}".format(screen_x, screen_y))
+            sleep(self.other_frequecy)
+
+    # translate a pixel position on a screenshot image to a pixel position on the screen.
+    def __get_click_position(self, pos):
+        return (pos[0] + self.window_offset[0], pos[1] + self.window_offset[1])
+
+    def __get_screen_midpoint(self):
+        return (int(self.wincap.w / 2), int(self.wincap.h / 2))

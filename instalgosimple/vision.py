@@ -25,7 +25,15 @@ class Vision:
         self.method = method
         self.debug = debug
 
-    def find(self, haystack_img, threshold=0.5, color=(255, 0, 255), debug_mode=None):
+    def find(
+        self,
+        haystack_img,
+        threshold=0.5,
+        x_position=None,
+        y_position=None,
+        color=(255, 0, 255),
+        debug=False,
+    ):
         # run the OpenCV algorithm
         result = cv.matchTemplate(haystack_img, self.needle_img, self.method)
 
@@ -60,18 +68,26 @@ class Vision:
                 # Determine the center position
                 center_x = x + int(w / 2)
                 center_y = y + int(h / 2)
-                # Save the points
-                points.append((center_x, center_y))
 
-                if self.debug:
-                    # Draw the center point
-                    cv.drawMarker(
-                        haystack_img,
-                        (center_x, center_y),
-                        color,
-                        markerType=marker_type,
-                        markerSize=40,
-                        thickness=2,
-                    )
+                if (
+                    x_position is None
+                    or (x_position[0] <= center_x and center_x <= x_position[1])
+                ) and (
+                    y_position is None
+                    or (y_position[0] <= center_y and center_y <= y_position[1])
+                ):
+                    # Save the points
+                    points.append((center_x, center_y))
+
+                    if self.debug:
+                        # Draw the center point
+                        cv.drawMarker(
+                            haystack_img,
+                            (center_x, center_y),
+                            color,
+                            markerType=marker_type,
+                            markerSize=40,
+                            thickness=2,
+                        )
 
         return points
