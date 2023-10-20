@@ -32,6 +32,7 @@ class Vision:
         x_position=None,
         y_position=None,
         color=(255, 0, 255),
+        size=20,
         debug=False,
     ):
         # run the OpenCV algorithm
@@ -86,7 +87,7 @@ class Vision:
                             (center_x, center_y),
                             color,
                             markerType=marker_type,
-                            markerSize=40,
+                            markerSize=size,
                             thickness=2,
                         )
 
